@@ -27,6 +27,7 @@ numpy
 openpyxl
 packaging
 pandas
+Pillow
 Pygments
 python-dateutil
 PyYAML
