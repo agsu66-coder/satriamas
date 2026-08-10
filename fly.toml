@@ -1,0 +1,18 @@
+app = "SATRIA MAS BINANGUN"
+primary_region = "sin"        # Menggunakan region Singapura (paling dekat dengan Indonesia)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false   # Mencegah bot mati otomatis (menyala 24 jam)
+  auto_start_machines = true
+  min_machines_running = 1
+
+# [Opsional] Jika bot Anda menyimpan sesi WhatsApp secara lokal di folder tertentu (misalnya folder 'session' atau 'bot'), 
+# tambahkan blok volume ini agar data sesi tidak terhapus saat server restart:
+# [mounts]
+#   source = "whatsapp_data"
+#   destination = "/app/session"

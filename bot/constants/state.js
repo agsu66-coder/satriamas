@@ -1,0 +1,21 @@
+const STATE = {
+
+    MENU: "MENU",
+
+    ADMIN: "ADMIN",
+
+    ADMIN_CONFIRM: "ADMIN_CONFIRM",
+
+    PILIH_KATEGORI: "PILIH_KATEGORI",
+
+    TULIS_ADUAN: "TULIS_ADUAN",
+
+    INFO: "INFO",
+
+    FEEDBACK: "FEEDBACK",
+
+    MENU_ADUAN: "MENU_ADUAN"
+
+};
+
+module.exports = STATE;

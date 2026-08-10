@@ -1,0 +1,22 @@
+{
+    "branding": {
+        "system_name": "SATRIA MAS BINANGUN",
+        "institution_name": "KECAMATAN BINANGUN",
+        "header_title": "Sistem Administrasi dan Respons Informasi Masyarakat",
+        "header_description": "Layanan digital Kecamatan Binangun untuk mendukung administrasi dan pelayanan masyarakat.",
+        "footer_text": "Kecamatan Binangun • Pemerintah Kabupaten Cilacap",
+        "logo": "assets/logo.png"
+    },
+    "theme": {
+        "mode": "light",
+        "primary_color": "#12372A",
+        "accent_color": "#2D6A4F",
+        "background_color": "#F3F5F6",
+        "card_color": "#FFFFFF",
+        "text_color": "#12372A"
+    },
+    "application": {
+        "version": "0.1.0",
+        "environment": "production"
+    }
+}

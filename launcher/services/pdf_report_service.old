@@ -1,0 +1,1111 @@
+import os
+
+from datetime import datetime
+
+from reportlab.lib.pagesizes import A4
+
+from reportlab.lib import colors
+
+from reportlab.lib.styles import getSampleStyleSheet
+
+from reportlab.lib.styles import ParagraphStyle
+
+from reportlab.lib.enums import TA_CENTER
+
+from reportlab.lib.units import mm
+
+from reportlab.platypus import (
+
+    SimpleDocTemplate,
+
+    Paragraph,
+
+    Spacer,
+
+    Table,
+
+    TableStyle,
+
+    Image,
+
+    HRFlowable
+
+)
+
+from reportlab.pdfbase.ttfonts import TTFont
+
+from reportlab.pdfbase import pdfmetrics
+
+from services.branding_service import branding_service
+
+
+class PDFReportService:
+
+    # ==================================================
+    # INIT
+    # ==================================================
+
+    def __init__(self):
+
+        self.output_folder = os.path.join(
+
+            os.path.dirname(
+
+                os.path.dirname(
+
+                    os.path.abspath(__file__)
+
+                )
+
+            ),
+
+            "reports"
+
+        )
+
+        os.makedirs(
+
+            self.output_folder,
+
+            exist_ok=True
+
+        )
+
+    # ==================================================
+    # GENERATE PDF
+    # ==================================================
+
+    def generate_report_pdf(
+
+        self,
+
+        report_data,
+
+        output_path=None
+
+    ):
+
+        # ----------------------------------------------
+        # BRANDING
+        # ----------------------------------------------
+
+        branding = (
+
+            branding_service
+
+            .get_branding()
+
+        )
+
+        # ----------------------------------------------
+        # OUTPUT PATH
+        # ----------------------------------------------
+
+        if output_path is None:
+
+            timestamp = (
+
+                datetime.now()
+
+                .strftime(
+
+                    "%Y%m%d_%H%M%S"
+
+                )
+
+            )
+
+            filename = (
+
+                "Laporan_TERATAI_AI_"
+
+                + timestamp
+
+                + ".pdf"
+
+            )
+
+            output_path = os.path.join(
+
+                self.output_folder,
+
+                filename
+
+            )
+
+        # ----------------------------------------------
+        # DOCUMENT
+        # ----------------------------------------------
+
+        document = SimpleDocTemplate(
+
+            output_path,
+
+            pagesize=A4,
+
+            rightMargin=18 * mm,
+
+            leftMargin=18 * mm,
+
+            topMargin=15 * mm,
+
+            bottomMargin=15 * mm
+
+        )
+
+        styles = getSampleStyleSheet()
+
+        story = []
+
+        # ==================================================
+        # HEADER BRANDING
+        # ==================================================
+
+        logo_path = branding.get(
+
+            "logo"
+
+        )
+
+        header_data = []
+
+        logo_cell = ""
+
+        if (
+
+            logo_path
+
+            and
+
+            os.path.exists(
+
+                logo_path
+
+            )
+
+        ):
+
+            try:
+
+                logo = Image(
+
+                    logo_path,
+
+                    width=25 * mm,
+
+                    height=25 * mm
+
+                )
+
+                logo_cell = logo
+
+            except Exception:
+
+                logo_cell = ""
+
+        # ----------------------------------------------
+        # BRANDING TEXT
+        # ----------------------------------------------
+
+        header_text = [
+
+            Paragraph(
+
+                f"<b>{branding.get('county_name', '')}</b>",
+
+                ParagraphStyle(
+
+                    "county",
+
+                    parent=styles["Normal"],
+
+                    fontSize=10,
+
+                    alignment=TA_CENTER,
+
+                    leading=13
+
+                )
+
+            ),
+
+            Paragraph(
+
+                f"<b>{branding.get('institution_name', '')}</b>",
+
+                ParagraphStyle(
+
+                    "institution",
+
+                    parent=styles["Normal"],
+
+                    fontSize=15,
+
+                    alignment=TA_CENTER,
+
+                    leading=18
+
+                )
+
+            ),
+
+            Paragraph(
+
+                branding.get(
+
+                    "header_title",
+
+                    ""
+
+                ),
+
+                ParagraphStyle(
+
+                    "header_title",
+
+                    parent=styles["Normal"],
+
+                    fontSize=10,
+
+                    alignment=TA_CENTER,
+
+                    leading=13
+
+                )
+
+            ),
+
+            Paragraph(
+
+                branding.get(
+
+                    "address",
+
+                    ""
+
+                ),
+
+                ParagraphStyle(
+
+                    "address",
+
+                    parent=styles["Normal"],
+
+                    fontSize=8,
+
+                    alignment=TA_CENTER,
+
+                    leading=10
+
+                )
+
+            )
+
+        ]
+
+        header_data.append(
+
+            [
+
+                logo_cell,
+
+                header_text
+
+            ]
+
+        )
+
+        header_table = Table(
+
+            header_data,
+
+            colWidths=[
+
+                30 * mm,
+
+                135 * mm
+
+            ]
+
+        )
+
+        header_table.setStyle(
+
+            TableStyle(
+
+                [
+
+                    (
+
+                        "VALIGN",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        "MIDDLE"
+
+                    ),
+
+                    (
+
+                        "ALIGN",
+
+                        (0, 0),
+
+                        (0, 0),
+
+                        "CENTER"
+
+                    ),
+
+                    (
+
+                        "LEFTPADDING",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        3
+
+                    ),
+
+                    (
+
+                        "RIGHTPADDING",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        3
+
+                    ),
+
+                    (
+
+                        "TOPPADDING",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        3
+
+                    ),
+
+                    (
+
+                        "BOTTOMPADDING",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        3
+
+                    )
+
+                ]
+
+            )
+
+        )
+
+        story.append(
+
+            header_table
+
+        )
+
+        story.append(
+
+            Spacer(
+
+                1,
+
+                5
+
+            )
+
+        )
+
+        story.append(
+
+            HRFlowable(
+
+                width="100%",
+
+                thickness=1.5,
+
+                color=colors.HexColor(
+
+                    "#12372A"
+
+                ),
+
+                spaceBefore=2,
+
+                spaceAfter=12
+
+            )
+
+        )
+
+        # ==================================================
+        # TITLE
+        # ==================================================
+
+        story.append(
+
+            Paragraph(
+
+                "<b>LAPORAN AKTIVITAS DAN ADUAN</b>",
+
+                ParagraphStyle(
+
+                    "report_title",
+
+                    parent=styles["Title"],
+
+                    fontSize=16,
+
+                    alignment=TA_CENTER,
+
+                    textColor=colors.HexColor(
+
+                        "#12372A"
+
+                    )
+
+                )
+
+            )
+
+        )
+
+        story.append(
+
+            Spacer(
+
+                1,
+
+                8
+
+            )
+
+        )
+
+        periode = report_data.get(
+
+            "periode",
+
+            {}
+
+        )
+
+        mulai = periode.get(
+
+            "mulai",
+
+            "-"
+
+        )
+
+        akhir = periode.get(
+
+            "akhir",
+
+            "-"
+
+        )
+
+        story.append(
+
+            Paragraph(
+
+                f"<b>Periode:</b> {mulai} s/d {akhir}",
+
+                styles["Normal"]
+
+            )
+
+        )
+
+        story.append(
+
+            Spacer(
+
+                1,
+
+                12
+
+            )
+
+        )
+
+        # ==================================================
+        # AKTIVITAS
+        # ==================================================
+
+        aktivitas = report_data.get(
+
+            "aktivitas",
+
+            {}
+
+        )
+
+        story.append(
+
+            Paragraph(
+
+                "<b>A. AKTIVITAS SISTEM</b>",
+
+                styles["Heading2"]
+
+            )
+
+        )
+
+        aktivitas_data = [
+
+            [
+
+                "Indikator",
+
+                "Jumlah"
+
+            ],
+
+            [
+
+                "Total Aktivitas",
+
+                str(
+
+                    aktivitas.get(
+
+                        "totalAktivitas",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Pengguna Unik",
+
+                str(
+
+                    aktivitas.get(
+
+                        "totalPenggunaUnik",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Pengguna Administrasi",
+
+                str(
+
+                    aktivitas.get(
+
+                        "totalPenggunaAdministrasi",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Sesi Administrasi",
+
+                str(
+
+                    aktivitas.get(
+
+                        "totalSesiAdministrasi",
+
+                        0
+
+                    )
+
+                )
+
+            ]
+
+        ]
+
+        aktivitas_table = Table(
+
+            aktivitas_data,
+
+            colWidths=[
+
+                120 * mm,
+
+                45 * mm
+
+            ]
+
+        )
+
+        aktivitas_table.setStyle(
+
+            TableStyle(
+
+                [
+
+                    (
+
+                        "BACKGROUND",
+
+                        (0, 0),
+
+                        (-1, 0),
+
+                        colors.HexColor(
+
+                            "#12372A"
+
+                        )
+
+                    ),
+
+                    (
+
+                        "TEXTCOLOR",
+
+                        (0, 0),
+
+                        (-1, 0),
+
+                        colors.white
+
+                    ),
+
+                    (
+
+                        "GRID",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        0.5,
+
+                        colors.grey
+
+                    ),
+
+                    (
+
+                        "ALIGN",
+
+                        (1, 1),
+
+                        (1, -1),
+
+                        "CENTER"
+
+                    ),
+
+                    (
+
+                        "VALIGN",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        "MIDDLE"
+
+                    ),
+
+                    (
+
+                        "BACKGROUND",
+
+                        (0, 1),
+
+                        (-1, -1),
+
+                        colors.HexColor(
+
+                            "#F8FAFC"
+
+                        )
+
+                    )
+
+                ]
+
+            )
+
+        )
+
+        story.append(
+
+            aktivitas_table
+
+        )
+
+        story.append(
+
+            Spacer(
+
+                1,
+
+                15
+
+            )
+
+        )
+
+        # ==================================================
+        # ADUAN
+        # ==================================================
+
+        aduan = report_data.get(
+
+            "aduan",
+
+            {}
+
+        )
+
+        story.append(
+
+            Paragraph(
+
+                "<b>B. ADUAN MASYARAKAT</b>",
+
+                styles["Heading2"]
+
+            )
+
+        )
+
+        aduan_data = [
+
+            [
+
+                "Indikator",
+
+                "Jumlah"
+
+            ],
+
+            [
+
+                "Total Aduan",
+
+                str(
+
+                    aduan.get(
+
+                        "totalAduan",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Pengguna Aduan",
+
+                str(
+
+                    aduan.get(
+
+                        "totalPenggunaAduan",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Baru",
+
+                str(
+
+                    aduan.get(
+
+                        "baru",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Diproses",
+
+                str(
+
+                    aduan.get(
+
+                        "diproses",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Menunggu Informasi",
+
+                str(
+
+                    aduan.get(
+
+                        "menungguInfo",
+
+                        0
+
+                    )
+
+                )
+
+            ],
+
+            [
+
+                "Selesai",
+
+                str(
+
+                    aduan.get(
+
+                        "selesai",
+
+                        0
+
+                    )
+
+                )
+
+            ]
+
+        ]
+
+        aduan_table = Table(
+
+            aduan_data,
+
+            colWidths=[
+
+                120 * mm,
+
+                45 * mm
+
+            ]
+
+        )
+
+        aduan_table.setStyle(
+
+            TableStyle(
+
+                [
+
+                    (
+
+                        "BACKGROUND",
+
+                        (0, 0),
+
+                        (-1, 0),
+
+                        colors.HexColor(
+
+                            "#12372A"
+
+                        )
+
+                    ),
+
+                    (
+
+                        "TEXTCOLOR",
+
+                        (0, 0),
+
+                        (-1, 0),
+
+                        colors.white
+
+                    ),
+
+                    (
+
+                        "GRID",
+
+                        (0, 0),
+
+                        (-1, -1),
+
+                        0.5,
+
+                        colors.grey
+
+                    ),
+
+                    (
+
+                        "ALIGN",
+
+                        (1, 1),
+
+                        (1, -1),
+
+                        "CENTER"
+
+                    ),
+
+                    (
+
+                        "BACKGROUND",
+
+                        (0, 1),
+
+                        (-1, -1),
+
+                        colors.HexColor(
+
+                            "#F8FAFC"
+
+                        )
+
+                    )
+
+                ]
+
+            )
+
+        )
+
+        story.append(
+
+            aduan_table
+
+        )
+
+        story.append(
+
+            Spacer(
+
+                1,
+
+                20
+
+            )
+
+        )
+
+        # ==================================================
+        # FOOTER
+        # ==================================================
+
+        footer_text = (
+
+            f"{branding.get('system_name', 'TERATAI AI')} | "
+
+            f"{branding.get('website', '')} | "
+
+            f"{branding.get('phone', '')} | "
+
+            f"{branding.get('email', '')}"
+
+        )
+
+        story.append(
+
+            HRFlowable(
+
+                width="100%",
+
+                thickness=0.8,
+
+                color=colors.grey,
+
+                spaceBefore=5,
+
+                spaceAfter=8
+
+            )
+
+        )
+
+        story.append(
+
+            Paragraph(
+
+                footer_text,
+
+                ParagraphStyle(
+
+                    "footer",
+
+                    parent=styles["Normal"],
+
+                    fontSize=7,
+
+                    alignment=TA_CENTER,
+
+                    textColor=colors.grey
+
+                )
+
+            )
+
+        )
+
+        # ==================================================
+        # BUILD
+        # ==================================================
+
+        document.build(
+
+            story
+
+        )
+
+        return output_path
+
+
+pdf_report_service = PDFReportService()

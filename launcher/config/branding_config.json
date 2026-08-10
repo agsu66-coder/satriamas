@@ -1,0 +1,22 @@
+{
+    "branding": {
+        "system_name": "SATRIA MAS",
+        "institution_name": "Kecamatan Binangun",
+        "header_title": "Sarana Informasi Terpadu dan Aduan Masyarakat Kecamatan Binangun",
+        "header_description": "Asisten Digital Kecamatan Binangun",
+        "footer_text": "© 2026 Kecamatan Binangun",
+        "logo": "assets/logo.png"
+    },
+    "theme": {
+        "mode": "dark",
+        "primary_color": "#12372A",
+        "accent_color": "#2D6A4F",
+        "background_color": "#F3F5F6",
+        "card_color": "#FFFFFF",
+        "text_color": "#12372A"
+    },
+    "application": {
+        "version": "0.1.0",
+        "environment": "production"
+    }
+}

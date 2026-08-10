@@ -1,0 +1,27 @@
+# Menggunakan base image Python resmi yang juga mendukung instalasi Node.js
+FROM python:3.11-slim
+
+# Install system dependencies, Node.js, dan npm
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tentukan direktori kerja di dalam container
+WORKDIR /app
+
+# Salin file konfigurasi dependensi terlebih dahulu
+COPY package*.json ./
+COPY requirements.txt ./
+
+# Install dependensi Node.js dan Python
+RUN npm install
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Salin seluruh sisa file proyek ke dalam container
+COPY . .
+
+# Perintah untuk menjalankan launcher utama Anda
+CMD ["python", "launcher/launcher.py"]
