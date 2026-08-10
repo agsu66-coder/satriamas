@@ -43,6 +43,7 @@ shellingham
 six
 sympy
 threadpoolctl
+tkcalendar
 tokenizers
 torch
 tqdm
