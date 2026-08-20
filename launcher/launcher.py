@@ -39,7 +39,6 @@ class TerataiLauncher:
     # ==================================================
     # CLOUD BACKEND RUNNER (Pengganti GUI di Server)
     # ==================================================
-
     def run_cloud_backend(self):
             print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
     
@@ -54,7 +53,7 @@ class TerataiLauncher:
                     self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
             
                 def log_message(self, format, *args):
-                    return # Mencegah spam log HTTP berlebih
+                    return
 
             def start_server():
                 with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
@@ -64,52 +63,52 @@ class TerataiLauncher:
             server_thread = threading.Thread(target=start_server, daemon=True)
             server_thread.start()
 
-        # 2. Jalankan app.py dan pantau log secara aman tanpa memblokir server utama
+        # 2. Jalankan app.py (di folder backend) dan index.js (di folder bot) secara berurutan
             import subprocess
-            import queue
-
-            def enqueue_output(out, queue_obj):
-                for line in iter(out.readline, b''):
-                    queue_obj.put(line.decode('utf-8', errors='ignore'))
-                out.close()
 
             def run_bot_sequence():
-                print("[LAUNCHER] Menjalankan app.py (Python) di background...")
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Sesuaikan root direktori proyek Anda
+                if os.path.basename(base_dir) == "launcher":
+                    root_dir = os.path.dirname(base_dir)
+                else:
+                    root_dir = base_dir
+
+            # Jalur sesuai struktur folder Anda
+                app_path = os.path.join(root_dir, "backend", "app.py")
+                node_path = os.path.join(root_dir, "bot", "index.js")
+
+                print(f"[LAUNCHER] Mencari app.py di: {app_path}")
+                if not os.path.exists(app_path):
+                    print(f"[LAUNCHER] ERROR: File app.py tidak ditemukan di {app_path}!")
+                    return
+
+                print("[LAUNCHER] Menjalankan app.py dari folder backend...")
                 try:
                     process = subprocess.Popen(
-                        ["python", "app.py"],
+                        ["python", app_path],
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1
                     )
 
-                    q = queue.Queue()
-                    t = threading.Thread(target=enqueue_output, args=(process.stdout, q), daemon=True)
-                    t.start()
-
-                    node_started = False
-
-                # Loop pemantauan non-blocking
-                    while True:
-                        try:
-                            line = q.get_nowait()
-                        except queue.Empty:
-                        # Jika belum ada log baru, beri jeda singkat agar CPU tidak tinggi
-                            time.sleep(0.1)
-                            if process.poll() is not None:
+                    for line in iter(process.stdout.readline, ''):
+                        cleaned = line.strip()
+                        if cleaned:
+                            print(f"[app.py] {cleaned}")
+                        
+                        # Begitu app.py siap (memunculkan indikator port), jalankan index.js
+                            if "Running on" in cleaned or "5000" in cleaned:
+                                print(f"[LAUNCHER] Mencari index.js di: {node_path}")
+                                if os.path.exists(node_path):
+                                    print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js dari folder bot...")
+                                    subprocess.Popen(["node", node_path])
+                                    print("[LAUNCHER] index.js berhasil dimulai.")
+                                else:
+                                    print(f"[LAUNCHER] ERROR: File index.js tidak ditemukan di {node_path}!")
                                 break
-                            continue
-
-                        cleaned_line = line.strip()
-                        if cleaned_line:
-                            print(f"[app.py] {cleaned_line}")
-
-                        # Begitu teks penanda siap muncul, jalankan index.js sekali saja
-                            if not node_started and ("Running on" in cleaned_line or "5000" in cleaned_line):
-                                node_started = True
-                                print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js...")
-                                subprocess.Popen(["node", "index.js"])
-                                print("[LAUNCHER] index.js berhasil dimulai.")
-
                 except Exception as e:
                     print(f"[LAUNCHER] Error pada urutan bot: {e}")
 
@@ -117,10 +116,9 @@ class TerataiLauncher:
             bot_thread = threading.Thread(target=run_bot_sequence, daemon=True)
             bot_thread.start()
 
-        # 3. Pertahankan agar kontainer utama tetap menyala 24 jam penuh
+        # 3. Pertahankan kontainer agar tetap hidup 24 jam penuh
             while True:
                 time.sleep(60)
-
 
     # ==================================================
     # LOGIN
