@@ -43,7 +43,7 @@ class TerataiLauncher:
 def run_cloud_backend(self):
         print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
     
-        # 1. Jalankan Server HTTP Railway (Port Dinamis) terlebih dahulu di background
+        # 1. Jalankan Server HTTP Railway (Port Dinamis) di Thread Terpisah
         PORT = int(os.environ.get("PORT", 8080))
     
         class SimpleHandler(http.server.SimpleHTTPRequestHandler):
@@ -64,8 +64,14 @@ def run_cloud_backend(self):
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
 
-        # 2. Jalankan app.py dan tunggu sampai teks penanda muncul, lalu nyalakan index.js
+        # 2. Jalankan app.py dan pantau log secara aman tanpa memblokir server utama
         import subprocess
+        import queue
+
+        def enqueue_output(out, queue_obj):
+            for line in iter(out.readline, b''):
+                queue_obj.put(line.decode('utf-8', errors='ignore'))
+            out.close()
 
         def run_bot_sequence():
             print("[LAUNCHER] Menjalankan app.py (Python) di background...")
@@ -73,34 +79,48 @@ def run_cloud_backend(self):
                 process = subprocess.Popen(
                     ["python", "app.py"],
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
+                    stderr=subprocess.STDOUT
                 )
 
-                # Baca output baris demi baris dari app.py
+                q = queue.Queue()
+                t = threading.Thread(target=enqueue_output, args=(process.stdout, q), daemon=True)
+                t.start()
+
+                node_started = False
+
+                # Loop pemantauan non-blocking
                 while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        print(f"[app.py] {output.strip()}")
-                        
-                        # Begitu teks penanda muncul, jalankan index.js
-                        if "Running on" in output or "5000" in output:
+                    try:
+                        line = q.get_nowait()
+                    except queue.Empty:
+                        # Jika belum ada log baru, beri jeda singkat agar CPU tidak tinggi
+                        time.sleep(0.1)
+                        if process.poll() is not None:
+                            break
+                        continue
+
+                    cleaned_line = line.strip()
+                    if cleaned_line:
+                        print(f"[app.py] {cleaned_line}")
+
+                        # Begitu teks penanda siap muncul, jalankan index.js sekali saja
+                        if not node_started and ("Running on" in cleaned_line or "5000" in cleaned_line):
+                            node_started = True
                             print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js...")
                             subprocess.Popen(["node", "index.js"])
                             print("[LAUNCHER] index.js berhasil dimulai.")
-                            break
+
             except Exception as e:
                 print(f"[LAUNCHER] Error pada urutan bot: {e}")
 
-        # Jalankan urutan bot di thread terpisah agar server HTTP Railway tetap responsif
+        # Jalankan urutan bot di thread independen
         bot_thread = threading.Thread(target=run_bot_sequence, daemon=True)
         bot_thread.start()
 
-        # 3. Biarkan proses utama terus menyala 24 jam penuh
+        # 3. Pertahankan agar kontainer utama tetap menyala 24 jam penuh
         while True:
             time.sleep(60)
+
 
     # ==================================================
     # LOGIN
