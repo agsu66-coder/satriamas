@@ -63,31 +63,37 @@ class TerataiLauncher:
             server_thread = threading.Thread(target=start_server, daemon=True)
             server_thread.start()
 
-        # 2. Jalankan app.py (di folder backend) dan index.js (di folder bot) secara berurutan
+        # 2. Jalankan app.py dan index.js secara terstruktur dan aman
             import subprocess
 
             def run_bot_sequence():
                 base_dir = os.path.dirname(os.path.abspath(__file__))
             
-            # Sesuaikan root direktori proyek Anda
                 if os.path.basename(base_dir) == "launcher":
                     root_dir = os.path.dirname(base_dir)
                 else:
                     root_dir = base_dir
 
-            # Jalur sesuai struktur folder Anda
-                app_path = os.path.join(root_dir, "backend", "app.py")
-                node_path = os.path.join(root_dir, "bot", "index.js")
+                backend_dir = os.path.join(root_dir, "backend")
+                bot_dir = os.path.join(root_dir, "bot")
 
-                print(f"[LAUNCHER] Mencari app.py di: {app_path}")
+                app_path = os.path.join(backend_dir, "app.py")
+                node_path = os.path.join(bot_dir, "index.js")
+
+                print(f"[LAUNCHER] Memeriksa keberadaan file...")
+                print(f" - app.py path : {app_path} (Ada: {os.path.exists(app_path)})")
+                print(f" - index.js path: {node_path} (Ada: {os.path.exists(node_path)})")
+
                 if not os.path.exists(app_path):
-                    print(f"[LAUNCHER] ERROR: File app.py tidak ditemukan di {app_path}!")
+                    print(f"[LAUNCHER] ERROR FATAL: File app.py tidak ditemukan!")
                     return
 
                 print("[LAUNCHER] Menjalankan app.py dari folder backend...")
                 try:
+                # Menjalankan app.py dengan cwd (current working directory) diset ke folder backend
                     process = subprocess.Popen(
-                        ["python", app_path],
+                        ["python", "app.py"],
+                        cwd=backend_dir,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT,
                         text=True,
@@ -99,27 +105,32 @@ class TerataiLauncher:
                         if cleaned:
                             print(f"[app.py] {cleaned}")
                         
-                        # Begitu app.py siap (memunculkan indikator port), jalankan index.js
+                        # Begitu app.py siap memunculkan indikator server web, jalankan index.js
                             if "Running on" in cleaned or "5000" in cleaned:
-                                print(f"[LAUNCHER] Mencari index.js di: {node_path}")
                                 if os.path.exists(node_path):
                                     print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js dari folder bot...")
-                                    subprocess.Popen(["node", node_path])
-                                    print("[LAUNCHER] index.js berhasil dimulai.")
+                                # Menjalankan index.js dengan cwd diset ke folder bot
+                                    subprocess.Popen(
+                                        ["node", "index.js"],
+                                        cwd=bot_dir,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT,
+                                        text=True
+                                    )
+                                    print("[LAUNCHER] index.js berhasil dipicu.")
                                 else:
                                     print(f"[LAUNCHER] ERROR: File index.js tidak ditemukan di {node_path}!")
                                 break
                 except Exception as e:
-                    print(f"[LAUNCHER] Error pada urutan bot: {e}")
+                    print(f"[LAUNCHER] Error saat menjalankan proses bot: {e}")
 
-        # Jalankan urutan bot di thread independen
+        # Jalankan urutan bot di background thread
             bot_thread = threading.Thread(target=run_bot_sequence, daemon=True)
             bot_thread.start()
 
         # 3. Pertahankan kontainer agar tetap hidup 24 jam penuh
             while True:
                 time.sleep(60)
-
     # ==================================================
     # LOGIN
     # ==================================================
