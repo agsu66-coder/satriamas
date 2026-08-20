@@ -40,49 +40,71 @@ class TerataiLauncher:
     # CLOUD BACKEND RUNNER (Pengganti GUI di Server)
     # ==================================================
 
-    def run_cloud_backend(self):
-            print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
+def run_cloud_backend(self):
+        print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
     
         # Ambil port yang disediakan oleh Railway, default ke 8080 jika lokal
-            PORT = int(os.environ.get("PORT", 8080))
+        PORT = int(os.environ.get("PORT", 8080))
     
-            class SimpleHandler(http.server.SimpleHTTPRequestHandler):
-                def do_GET(self):
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/plain")
-                    self.end_headers()
-                    self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
+        class SimpleHandler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
             
-                def log_message(self, format, *args):
-                    return # Mencegah spam log HTTP berlebih
+            def log_message(self, format, *args):
+                return # Mencegah spam log HTTP berlebih
 
-            def start_server():
-                with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
-                    print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
-                    httpd.serve_forever()
+        def start_server():
+            with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
+                print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
+                httpd.serve_forever()
 
         # 1. Jalankan server HTTP di latar belakang (daemon thread)
-            server_thread = threading.Thread(target=start_server, daemon=True)
-            server_thread.start()
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
 
-        # 2. PANGGIL SISTEM / BOT UTAMA ANDA DI SINI
-            print("[LAUNCHER] Memulai protokol START SYSTEM di Cloud Environment...")
+        # 2. MENJALANKAN app.py DAN MENUNGGU TEKS PENANDA
+        import subprocess
+        
+        def monitor_and_start_node():
+            print("[LAUNCHER] Menjalankan app.py (Python) dan memantau log-nya...")
             try:
-            # Memanggil fungsi start sistem Anda (sama seperti menekan tombol 'start system' di dashboard lokal)
-                if hasattr(system_controller, 'start_system'):
-                    system_controller.start_system()
-                else:
-                # Atau jika bot Anda dijalankan via file eksternal (contoh Node.js / Python lain):
-                    # import subprocess
-                    # subprocess.Popen(["node", "index.js"])
-                    pass
-                print("[LAUNCHER] Bot utama berhasil dipicu di latar belakang.")
+                # Jalankan app.py dan tangkap output-nya secara real-time
+                process = subprocess.Popen(
+                    ["python", "app.py"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
+                )
+
+                # Baca output baris demi baris dari app.py
+                while True:
+                    output = process.stdout.readline()
+                    if output == '' and process.poll() is not None:
+                        break
+                    if output:
+                        print(f"[app.py] {output.strip()}")
+                        
+                        # Periksa apakah teks penanda sudah muncul
+                        if "Running on" in output or "5000" in output:
+                            print("[LAUNCHER] Terdeteksi app.py sudah siap! Menjalankan index.js...")
+                            
+                            # Jalankan index.js setelah app.py siap
+                            subprocess.Popen(["node", "index.js"])
+                            print("[LAUNCHER] index.js berhasil dimulai.")
+                            break # Keluar dari pemantauan setelah index.js dijalankan
             except Exception as e:
-                print(f"[LAUNCHER] Gagal memulai bot utama: {e}")
+                print(f"[LAUNCHER] Error saat memantau app.py: {e}")
+
+        # Jalankan fungsi pemantauan di latar belakang agar tidak memblokir server HTTP
+        monitor_thread = threading.Thread(target=monitor_and_start_node, daemon=True)
+        monitor_thread.start()
 
         # 3. Biarkan proses utama terus menyala 24 jam
-            while True:
-                time.sleep(60)
+        while True:
+            time.sleep(60)
 
     # ==================================================
     # LOGIN
