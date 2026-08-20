@@ -1,4 +1,7 @@
 import os
+import http.server
+import socketserver
+import threading
 import time
 import tkinter as tk
 
@@ -38,20 +41,37 @@ class TerataiLauncher:
     # ==================================================
 
     def run_cloud_backend(self):
-        """Menjalankan sistem secara otomatis di latar belakang tanpa layar/monitor."""
-        try:
-            print("[LAUNCHER] Memulai protokol START SYSTEM di Cloud...")
-            system_controller.start_system()
-            print("[LAUNCHER] Sistem Cloud aktif dan berjalan 24 jam.")
-        except Exception as error:
-            print(f"[LAUNCHER] Error saat memulai sistem cloud: {error}")
+        print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
+    
+    # Ambil port yang disediakan oleh Railway, default ke 8080 jika lokal
+        PORT = int(os.environ.get("PORT", 8080))
+    
+        class SimpleHandler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
+            
+            def log_message(self, format, *args):
+                return # Mencegah spam log HTTP berlebih
 
-        # Loop abadi agar kontainer cloud tidak tertutup / berhenti
-        try:
-            while not self.is_closing:
-                time.sleep(3600)
-        except KeyboardInterrupt:
-            self.close_application()
+        def start_server():
+            with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
+                print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
+                httpd.serve_forever()
+
+    # Jalankan server HTTP di latar belakang (daemon thread)
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+
+    # Di sinilah Anda juga bisa memanggil file utama bot WhatsApp Anda (Node.js/Python)
+    # Contoh: subprocess.Popen(["node", "bot.js"])
+    
+    # Biarkan proses utama terus menyala
+        import time
+        while True:
+            time.sleep(60)
 
     # ==================================================
     # LOGIN
