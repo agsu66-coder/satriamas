@@ -41,37 +41,48 @@ class TerataiLauncher:
     # ==================================================
 
     def run_cloud_backend(self):
-        print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
+            print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
     
-    # Ambil port yang disediakan oleh Railway, default ke 8080 jika lokal
-        PORT = int(os.environ.get("PORT", 8080))
+        # Ambil port yang disediakan oleh Railway, default ke 8080 jika lokal
+            PORT = int(os.environ.get("PORT", 8080))
     
-        class SimpleHandler(http.server.SimpleHTTPRequestHandler):
-            def do_GET(self):
-                self.send_response(200)
-                self.send_header("Content-type", "text/plain")
-                self.end_headers()
-                self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
+            class SimpleHandler(http.server.SimpleHTTPRequestHandler):
+                def do_GET(self):
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
             
-            def log_message(self, format, *args):
-                return # Mencegah spam log HTTP berlebih
+                def log_message(self, format, *args):
+                    return # Mencegah spam log HTTP berlebih
 
-        def start_server():
-            with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
-                print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
-                httpd.serve_forever()
+            def start_server():
+                with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
+                    print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
+                    httpd.serve_forever()
 
-    # Jalankan server HTTP di latar belakang (daemon thread)
-        server_thread = threading.Thread(target=start_server, daemon=True)
-        server_thread.start()
+        # 1. Jalankan server HTTP di latar belakang (daemon thread)
+            server_thread = threading.Thread(target=start_server, daemon=True)
+            server_thread.start()
 
-    # Di sinilah Anda juga bisa memanggil file utama bot WhatsApp Anda (Node.js/Python)
-    # Contoh: subprocess.Popen(["node", "bot.js"])
-    
-    # Biarkan proses utama terus menyala
-        import time
-        while True:
-            time.sleep(60)
+        # 2. PANGGIL SISTEM / BOT UTAMA ANDA DI SINI
+            print("[LAUNCHER] Memulai protokol START SYSTEM di Cloud Environment...")
+            try:
+            # Memanggil fungsi start sistem Anda (sama seperti menekan tombol 'start system' di dashboard lokal)
+                if hasattr(system_controller, 'start_system'):
+                    system_controller.start_system()
+                else:
+                # Atau jika bot Anda dijalankan via file eksternal (contoh Node.js / Python lain):
+                    # import subprocess
+                    # subprocess.Popen(["node", "index.js"])
+                    pass
+                print("[LAUNCHER] Bot utama berhasil dipicu di latar belakang.")
+            except Exception as e:
+                print(f"[LAUNCHER] Gagal memulai bot utama: {e}")
+
+        # 3. Biarkan proses utama terus menyala 24 jam
+            while True:
+                time.sleep(60)
 
     # ==================================================
     # LOGIN
