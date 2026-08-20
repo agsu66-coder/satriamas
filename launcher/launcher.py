@@ -40,86 +40,86 @@ class TerataiLauncher:
     # CLOUD BACKEND RUNNER (Pengganti GUI di Server)
     # ==================================================
 
-def run_cloud_backend(self):
-        print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
+    def run_cloud_backend(self):
+            print("[LAUNCHER] Menjalankan server HTTP dummy untuk merespons Railway Health Check...")
     
-        # 1. Jalankan Server HTTP Railway (Port Dinamis) di Thread Terpisah
-        PORT = int(os.environ.get("PORT", 8080))
+            # 1. Jalankan Server HTTP Railway (Port Dinamis) di Thread Terpisah
+            PORT = int(os.environ.get("PORT", 8080))
     
-        class SimpleHandler(http.server.SimpleHTTPRequestHandler):
-            def do_GET(self):
-                self.send_response(200)
-                self.send_header("Content-type", "text/plain")
-                self.end_headers()
-                self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
+            class SimpleHandler(http.server.SimpleHTTPRequestHandler):
+                def do_GET(self):
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(b"Teratai Bot is running 24/7 successfully!")
             
-            def log_message(self, format, *args):
-                return # Mencegah spam log HTTP berlebih
+                def log_message(self, format, *args):
+                    return # Mencegah spam log HTTP berlebih
 
-        def start_server():
-            with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
-                print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
-                httpd.serve_forever()
+            def start_server():
+                with socketserver.TCPServer(("", PORT), SimpleHandler) as httpd:
+                    print(f"[LAUNCHER] HTTP Server aktif pada port {PORT}")
+                    httpd.serve_forever()
 
-        server_thread = threading.Thread(target=start_server, daemon=True)
-        server_thread.start()
+            server_thread = threading.Thread(target=start_server, daemon=True)
+            server_thread.start()
 
         # 2. Jalankan app.py dan pantau log secara aman tanpa memblokir server utama
-        import subprocess
-        import queue
+            import subprocess
+            import queue
 
-        def enqueue_output(out, queue_obj):
-            for line in iter(out.readline, b''):
-                queue_obj.put(line.decode('utf-8', errors='ignore'))
-            out.close()
+            def enqueue_output(out, queue_obj):
+                for line in iter(out.readline, b''):
+                    queue_obj.put(line.decode('utf-8', errors='ignore'))
+                out.close()
 
-        def run_bot_sequence():
-            print("[LAUNCHER] Menjalankan app.py (Python) di background...")
-            try:
-                process = subprocess.Popen(
-                    ["python", "app.py"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT
-                )
+            def run_bot_sequence():
+                print("[LAUNCHER] Menjalankan app.py (Python) di background...")
+                try:
+                    process = subprocess.Popen(
+                        ["python", "app.py"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT
+                    )
 
-                q = queue.Queue()
-                t = threading.Thread(target=enqueue_output, args=(process.stdout, q), daemon=True)
-                t.start()
+                    q = queue.Queue()
+                    t = threading.Thread(target=enqueue_output, args=(process.stdout, q), daemon=True)
+                    t.start()
 
-                node_started = False
+                    node_started = False
 
                 # Loop pemantauan non-blocking
-                while True:
-                    try:
-                        line = q.get_nowait()
-                    except queue.Empty:
+                    while True:
+                        try:
+                            line = q.get_nowait()
+                        except queue.Empty:
                         # Jika belum ada log baru, beri jeda singkat agar CPU tidak tinggi
-                        time.sleep(0.1)
-                        if process.poll() is not None:
-                            break
-                        continue
+                            time.sleep(0.1)
+                            if process.poll() is not None:
+                                break
+                            continue
 
-                    cleaned_line = line.strip()
-                    if cleaned_line:
-                        print(f"[app.py] {cleaned_line}")
+                        cleaned_line = line.strip()
+                        if cleaned_line:
+                            print(f"[app.py] {cleaned_line}")
 
                         # Begitu teks penanda siap muncul, jalankan index.js sekali saja
-                        if not node_started and ("Running on" in cleaned_line or "5000" in cleaned_line):
-                            node_started = True
-                            print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js...")
-                            subprocess.Popen(["node", "index.js"])
-                            print("[LAUNCHER] index.js berhasil dimulai.")
+                            if not node_started and ("Running on" in cleaned_line or "5000" in cleaned_line):
+                                node_started = True
+                                print("[LAUNCHER] Terdeteksi app.py siap! Menjalankan index.js...")
+                                subprocess.Popen(["node", "index.js"])
+                                print("[LAUNCHER] index.js berhasil dimulai.")
 
-            except Exception as e:
-                print(f"[LAUNCHER] Error pada urutan bot: {e}")
+                except Exception as e:
+                    print(f"[LAUNCHER] Error pada urutan bot: {e}")
 
         # Jalankan urutan bot di thread independen
-        bot_thread = threading.Thread(target=run_bot_sequence, daemon=True)
-        bot_thread.start()
+            bot_thread = threading.Thread(target=run_bot_sequence, daemon=True)
+            bot_thread.start()
 
         # 3. Pertahankan agar kontainer utama tetap menyala 24 jam penuh
-        while True:
-            time.sleep(60)
+            while True:
+                time.sleep(60)
 
 
     # ==================================================
