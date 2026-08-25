@@ -30,9 +30,14 @@ const client = new Client({
 
         args: [
 
-            "--no-sandbox",
-
-            "--disable-setuid-sandbox"
+            '--no-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // Opsional jika diperlukan di cloud
+            '--disable-gpu',
+            '--disable-setuid-sandbox'
 
         ]
 
